@@ -1,196 +1,190 @@
 
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase";
-import { Boxes, LogOut, User, Package } from "lucide-react";
+import Sidebar from "@/components/Sidebar";
 
-export default function DashboardPage() {
-    const router = useRouter();
+const supabase = createClient();
 
-    // Create Supabase client only once
-    const supabase = useMemo(() => createClient(), []);
+export default function Dashboard() {
+  const router = useRouter();
 
-    const [email, setEmail] = useState("");
-    const [loading, setLoading] = useState(true);
-    const [loggingOut, setLoggingOut] = useState(false);
+  const [user, setUser] = useState(null);
+  const [dashboard, setDashboard] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-    // Check authentication
-    useEffect(() => {
-        let active = true;
+  useEffect(() => {
+    async function loadDashboard() {
+      try {
+        // Get the logged-in user and session
+        const {
+          data: { session },
+          error: authError,
+        } = await supabase.auth.getSession();
 
-        const checkUser = async () => {
-            try {
-                const {
-                    data: { user },
-                    error
-                } = await supabase.auth.getUser();
-
-                if (!active) return;
-
-                if (error || !user) {
-                    router.replace("/login");
-                    return;
-                }
-
-                setEmail(user.email || "");
-                setLoading(false);
-
-            } catch (error) {
-                console.error("Authentication error:", error);
-
-                if (active) {
-                    router.replace("/login");
-                }
-            }
-        };
-
-        checkUser();
-
-        return () => {
-            active = false;
-        };
-    }, [router, supabase]);
-
-    // Logout function
-    const handleLogout = async () => {
-        setLoggingOut(true);
-
-        const { error } = await supabase.auth.signOut();
-
-        if (error) {
-            console.error("Logout error:", error);
-            setLoggingOut(false);
-            return;
+        if (authError || !session) {
+          router.replace("/login");
+          return;
         }
 
-        router.replace("/login");
-    };
+        setUser(session.user);
 
-    // Loading screen
-    if (loading) {
-        return (
-            <div className="min-h-screen flex items-center justify-center bg-slate-100">
-                <div className="text-center">
-                    <Boxes
-                        size={40}
-                        className="mx-auto text-blue-600 mb-4"
-                    />
-                    <p className="text-slate-600 font-medium">
-                        Checking authentication...
-                    </p>
-                </div>
-            </div>
+        // Request dashboard statistics from Express
+        const response = await fetch(
+          "http://localhost:5000/api/dashboard",
+          {
+            headers: {
+              Authorization: `Bearer ${session.access_token}`,
+            },
+          }
         );
+
+        const result = await response.json();
+
+        if (!response.ok) {
+          throw new Error(result.message || "Unable to load dashboard");
+        }
+
+        setDashboard(result);
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
     }
 
+    loadDashboard();
+  }, [router]);
+
+  if (loading) {
     return (
-        <main className="min-h-screen bg-slate-100 p-6 md:p-10">
+      <main className="min-h-screen p-8">
+        Loading dashboard...
+      </main>
+    );
+  }
 
-            <div className="max-w-5xl mx-auto">
+  if (error) {
+    return (
+      <main className="min-h-screen p-8 text-red-600">
+        {error}
+      </main>
+    );
+  }
 
-                {/* Header */}
-                <header className="flex items-center justify-between mb-8">
+  return (
+    <div className="flex min-h-screen bg-gray-50">
+      <Sidebar />
 
-                    <div className="flex items-center gap-3">
-                        <div className="bg-blue-600 p-3 rounded-xl text-white">
-                            <Boxes size={28} />
-                        </div>
+      <main className="min-w-0 flex-1 p-5 md:p-8">
+        <div className="mx-auto max-w-6xl">
 
-                        <div>
-                            <h1 className="text-2xl font-bold text-slate-800">
-                                StockFlow
-                            </h1>
-                            <p className="text-sm text-slate-500">
-                                Inventory Management System
-                            </p>
-                        </div>
-                    </div>
+          {/* Dashboard Header */}
+          <header className="mb-8">
+            <h1 className="text-3xl font-bold text-gray-900">
+              StockFlow Dashboard
+            </h1>
 
-                    <button
-                        onClick={handleLogout}
-                        disabled={loggingOut}
-                        className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg disabled:opacity-50"
-                    >
-                        <LogOut size={18} />
-                        {loggingOut ? "Logging out..." : "Logout"}
-                    </button>
+            <p className="mt-2 text-gray-600">
+              Welcome, {user?.email}
+            </p>
+          </header>
 
-                </header>
+          {/* Dashboard Statistics */}
+          <section className="grid gap-6 md:grid-cols-3">
 
-                {/* Welcome Section */}
-                <section className="bg-white rounded-2xl shadow-sm p-8">
+            <div className="rounded-xl bg-white p-6 shadow">
+              <p className="text-sm text-gray-500">
+                Total Products
+              </p>
 
-                    <div className="flex items-center gap-3 mb-5">
-                        <div className="bg-blue-100 p-3 rounded-full">
-                            <User size={25} className="text-blue-600" />
-                        </div>
-
-                        <div>
-                            <h2 className="text-2xl font-bold text-slate-800">
-                                Welcome to StockFlow!
-                            </h2>
-
-                            <p className="text-slate-500">
-                                You are successfully logged in.
-                            </p>
-                        </div>
-                    </div>
-
-                    <div className="border-t pt-5 mt-5">
-                        <p className="text-sm text-slate-500 mb-1">
-                            Logged-in account
-                        </p>
-
-                        <p className="font-semibold text-slate-800">
-                            {email}
-                        </p>
-                    </div>
-
-                </section>
-
-                {/* Temporary Feature Section */}
-                <section className="grid grid-cols-1 md:grid-cols-2 gap-5 mt-6">
-
-                    <div className="bg-white p-6 rounded-xl shadow-sm">
-                        <Package
-                            size={30}
-                            className="text-blue-600 mb-3"
-                        />
-
-                        <h3 className="font-semibold text-slate-800">
-                            Product Management
-                        </h3>
-
-                        <p className="text-sm text-slate-500 mt-2">
-                            Manage products, SKUs, prices and stock quantities.
-                        </p>
-                    </div>
-
-                    <div className="bg-white p-6 rounded-xl shadow-sm">
-                        <Boxes
-                            size={30}
-                            className="text-green-600 mb-3"
-                        />
-
-                        <h3 className="font-semibold text-slate-800">
-                            Inventory Management
-                        </h3>
-
-                        <p className="text-sm text-slate-500 mt-2">
-                            Monitor available stock and identify low-stock products.
-                        </p>
-                    </div>
-
-                </section>
-
-                <footer className="text-center text-sm text-slate-400 mt-10">
-                    © 2026 StockFlow. Inventory Management System.
-                </footer>
-
+              <h2 className="mt-3 text-3xl font-bold">
+                {dashboard?.totalProducts ?? 0}
+              </h2>
             </div>
 
-        </main>
-    );
+            <div className="rounded-xl bg-white p-6 shadow">
+              <p className="text-sm text-gray-500">
+                Total Stock Quantity
+              </p>
+
+              <h2 className="mt-3 text-3xl font-bold">
+                {dashboard?.totalStock ?? 0}
+              </h2>
+            </div>
+
+            <div className="rounded-xl bg-white p-6 shadow">
+              <p className="text-sm text-gray-500">
+                Low Stock Products
+              </p>
+
+              <h2 className="mt-3 text-3xl font-bold text-red-600">
+                {dashboard?.lowStockCount ?? 0}
+              </h2>
+            </div>
+
+          </section>
+
+          {/* Low Stock Alerts */}
+          <section className="mt-8 rounded-xl bg-white p-6 shadow">
+
+            <h2 className="mb-4 text-xl font-semibold">
+              Low Stock Alerts
+            </h2>
+
+            {dashboard?.lowStockProducts?.length > 0 ? (
+              <div className="overflow-x-auto">
+
+                <table className="w-full text-left">
+                  <thead>
+                    <tr className="border-b text-gray-500">
+                      <th className="p-3">Product</th>
+                      <th className="p-3">SKU</th>
+                      <th className="p-3">Quantity</th>
+                      <th className="p-3">Threshold</th>
+                    </tr>
+                  </thead>
+
+                  <tbody>
+                    {dashboard.lowStockProducts.map((product) => (
+                      <tr
+                        key={product.id}
+                        className="border-b"
+                      >
+                        <td className="p-3">
+                          {product.name}
+                        </td>
+
+                        <td className="p-3">
+                          {product.sku}
+                        </td>
+
+                        <td className="p-3">
+                          {product.quantity}
+                        </td>
+
+                        <td className="p-3">
+                          {product.low_stock_threshold}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+
+              </div>
+            ) : (
+              <p className="text-gray-500">
+                No low-stock products found.
+              </p>
+            )}
+
+          </section>
+
+        </div>
+      </main>
+    </div>
+  );
 }
