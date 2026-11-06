@@ -37,9 +37,7 @@ app.use("/api/dashboard", dashboardRoutes);
 
 // Product CRUD routes
 app.use("/api/products", productRoutes);
-
 app.use("/api/settings", settingsRoutes);
-
 
 // Handle unknown routes (keep this LAST)
 app.use((req, res) => {

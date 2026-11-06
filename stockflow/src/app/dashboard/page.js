@@ -34,7 +34,7 @@ export default function Dashboard() {
 
         // Request dashboard statistics from Express
         const response = await fetch(
-          "https://stockflow-backend-7rv2.onrender.com/api/dashboard",
+          "http://localhost:5000/api/dashboard",
           {
             headers: {
               Authorization: `Bearer ${session.access_token}`,

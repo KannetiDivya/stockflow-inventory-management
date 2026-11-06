@@ -35,7 +35,7 @@ export default function SettingsPage() {
         setAccessToken(session.access_token);
 
         const response = await fetch(
-          "http://localhost:5000/api/settings",
+          "https://stockflow-backend-7rv2.onrender.com/api/settings",
           {
             headers: {
               Authorization: `Bearer ${session.access_token}`,

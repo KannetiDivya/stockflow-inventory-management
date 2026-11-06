@@ -19,7 +19,7 @@ export default function InventoryPage() {
 
   const loadInventory = useCallback(async (token) => {
     const response = await fetch(
-      "https://stockflow-backend-7rv2.onrender.com/api/products",
+      "http://localhost:5000/api/products",
       {
         headers: {
           Authorization: `Bearer ${token}`,

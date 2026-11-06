@@ -51,7 +51,7 @@ export default function SignupPage() {
 
         try {
             const response = await fetch(
-                "https://stockflow-backend-7rv2.onrender.com/api/auth/signup",
+                "http://localhost:5000/api/auth/signup",
                 {
                     method: "POST",
                     headers: {
